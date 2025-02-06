@@ -1,3 +1,5 @@
+from http.client import responses
+
 from django.contrib import messages
 
 from django.shortcuts import render, redirect, get_list_or_404, get_object_or_404
@@ -6,6 +8,7 @@ from django.views.generic import ListView, DetailView
 from django.views.generic.edit import FormView,CreateView, UpdateView, DeleteView
 from .forms import CategoryForm, ProductModelForm
 from .models import Product, Category
+from .tasks import send_mail_task, add_product_task_log
 
 # Create your views here.
 
@@ -73,7 +76,6 @@ class ProductDetailView(DetailView):
 
 
 
-
 class CategoryAddView(FormView):
     """Представление для добавления категории"""
 
@@ -89,7 +91,6 @@ class CategoryAddView(FormView):
 
 
 
-
 class ProductAddView(CreateView):
     """Представление для добавления товара"""
 
@@ -99,6 +100,12 @@ class ProductAddView(CreateView):
     success_url = reverse_lazy("products_list")
 
     def form_valid(self, form):
+        add_product_task_log.delay(form.cleaned_data.get('name'))
+        # send_mail_task.delay(
+        #     subject='Новый товар создан',
+        #     body=f'Товар {form.instance.name}  был создан',
+        #     recipient='dasv@mail.ru',
+        # )
         messages.success(self.request, 'продукт успешно добавлен!')
         return super().form_valid(form)
 
